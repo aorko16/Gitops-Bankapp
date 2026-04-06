@@ -41,16 +41,16 @@ jobs:
         working-directory: Multi-Tier-BankApp
         run: mvn clean install -DskipTests
 
-      # STEP 4: Trivy Scan (✅ FIXED - no wget)
+      # STEP 4: Trivy Scan ✅ FIXED - valid version
       - name: Trivy FS Scan
-        uses: aquasecurity/trivy-action@0.20.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
           output: 'trivy-report.txt'
 
-      # STEP 5: SonarCloud Scan (✅ FIXED)
+      # STEP 5: SonarCloud Scan
       - name: SonarCloud Scan
         working-directory: Multi-Tier-BankApp
         run: |
@@ -128,3 +128,4 @@ jobs:
             git commit -m "ci: update image to ${{ needs.build-and-push.outputs.image_tag }} [skip ci]"
             git pull --rebase origin main
             git push origin main
+          fi
