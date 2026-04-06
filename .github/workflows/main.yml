@@ -80,7 +80,7 @@ jobs:
       # STEP 9: Build & Push Docker Image
       - uses: docker/build-push-action@v5
         with:
-          context: .
+          context: Multi-Tier-BankApp
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
