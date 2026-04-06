@@ -1,0 +1,209 @@
+
+---
+# =========================================================
+# Namespace: used to isolate resources (dev/staging/prod)
+# =========================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bankapp-ns
+
+---
+# =========================================================
+# Secret: stores sensitive data
+# stringData: allows plain text (Kubernetes auto encodes to base64) ✅
+# =========================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: Test@123    # plain text ✅ auto encoded by Kubernetes
+  MYSQL_DATABASE: bankappdb        # plain text ✅ auto encoded by Kubernetes
+  
+---
+# =========================================================
+# ConfigMap: stores non-sensitive configuration
+# =========================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+data:
+  MYSQL_DATABASE: "bankappdb"      # database name
+
+---
+# =========================================================
+# PersistentVolumeClaim (Dynamic Provisioning)
+# PVC created → Default StorageClass kicks in → PV auto created → PVC binds to PV
+# =========================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+spec:
+  accessModes:
+    - ReadWriteOnce       # only one pod can read/write at a time
+  resources:
+    requests:
+      storage: 5Gi        # request 5GB storage from cluster
+  # storageClassName not set = uses cluster default = PV auto created ✅
+
+---
+# =========================================================
+# MySQL Deployment:
+# =========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate  #Recreate: kills old pod,then creates new one
+
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:8
+        name: mysql
+
+        # Resource limits to prevent pod consuming too much
+        resources:
+          requests:
+            memory: "512Mi"   # minimum memory guaranteed
+            cpu: "500m"       # minimum CPU guaranteed (0.5 core)
+          limits:
+            memory: "1Gi"     # maximum memory allowed
+            cpu: "1"          # maximum CPU allowed (1 core)
+
+        # Load sensitive data from Secret (secure way)
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
+
+        # Load DB name from ConfigMap (non-sensitive)
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: MYSQL_DATABASE
+
+        ports:
+        - containerPort: 3306   # MySQL default port
+          name: mysql
+
+        # Mount PVC to MySQL data directory
+        volumeMounts:
+        - mountPath: /var/lib/mysql   # MySQL stores data here
+          name: mysql-data
+
+      # Attach PVC to the pod
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc        # refers to PVC created above
+
+---
+# =========================================================
+# MySQL Service:
+# =========================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+spec:
+  type: ClusterIP          # defaults type
+  ports:
+  - port: 3306             # service port
+    targetPort: 3306       # container port
+  selector:
+    app: mysql             # routes traffic to mysql pods
+---
+
+
+
+# =========================================================
+# BankApp Deployment (Spring Boot Application)
+# =========================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bankapp
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+spec:
+  replicas: 1              # number of app pods running
+  selector:
+    matchLabels:
+      app: bankapp
+
+  template:
+    metadata:
+      labels:
+        app: bankapp
+    spec:
+      containers:
+      - name: bankapp
+        image: adijaiswal/bankapp:latest
+
+        # Resource limits
+        resources:
+          requests:
+            memory: "256Mi"   # minimum memory guaranteed
+            cpu: "250m"       # minimum CPU guaranteed (0.25 core)
+          limits:
+            memory: "512Mi"   # maximum memory allowed
+            cpu: "500m"       # maximum CPU allowed (0.5 core)
+
+        ports:
+        - containerPort: 8080   # Spring Boot default port
+
+        # Database connection configuration
+        env:
+        - name: SPRING_DATASOURCE_URL
+          # mysql-service = service name (Kubernetes DNS resolves this)
+          value: jdbc:mysql://mysql-service:3306/bankappdb
+      
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root               # MySQL root user
+
+        # Password loaded from Secret (secure way) ✅
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
+
+---
+# =========================================================
+# BankApp Service:
+# - Exposes BankApp to outside world
+# =========================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: bankapp-service
+  namespace: bankapp-ns    # belongs to bankapp-ns namespace
+spec:
+  type: NodePort           # type: NodePort, ClusterIP,LoadBalancer
+  ports:
+  - port: 80               # public port (users access this)
+    targetPort: 8080       # forwards to container port
+    nodePort: 31111         # NodePort (custom)
+
+  selector:
+    app: bankapp           # routes traffic to bankapp pods
