@@ -46,22 +46,18 @@ jobs:
           format: 'table'
           output: 'trivy-report.txt'
 
-      # ✅ FIXED - added sonar.branch.name + qualitygate.wait=false
+      # ✅ FIXED - using official SonarCloud action
       - name: SonarCloud Scan
-        working-directory: Multi-Tier-BankApp
-        run: |
-          mvn sonar:sonar \
-            -DskipTests \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
-            -Dsonar.java.binaries=target/classes \
-            -Dsonar.branch.name=main \
-            -Dsonar.qualitygate.wait=false
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: Multi-Tier-BankApp
+          args: >
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+            -Dsonar.java.binaries=target/classes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
