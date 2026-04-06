@@ -40,10 +40,12 @@ jobs:
 
       # STEP 4: Trivy Scan (optional)
       - name: Trivy FS Scan
-        run: |
-          wget https://github.com/aquasecurity/trivy/releases/download/v0.46.0/trivy_0.46.0_Linux-64bit.deb
-          sudo dpkg -i trivy_0.46.0_Linux-64bit.deb
-          trivy fs --format table -o fs.html .
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+         scan-type: 'fs'
+         scan-ref: '.'
+         format: 'table'
+         output: 'trivy-report.txt'
 
       # STEP 5: SonarCloud Scan (skip tests)
       - name: SonarCloud Scan
