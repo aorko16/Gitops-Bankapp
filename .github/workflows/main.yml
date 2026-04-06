@@ -14,13 +14,16 @@ env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bankapp
 
 jobs:
+  # ─────────────────────────────
+  # JOB 1: Build + Scan + Docker Push
+  # ─────────────────────────────
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.tag.outputs.tag }}
 
     steps:
-      # STEP 1: Checkout
+      # STEP 1: Checkout Code
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
@@ -33,21 +36,21 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # STEP 3: Build (skip tests to avoid failure)
+      # STEP 3: Build Project (skip tests to avoid failure)
       - name: Build Project
         working-directory: Multi-Tier-BankApp
         run: mvn clean install -DskipTests
 
-      # STEP 4: Trivy Scan (optional)
+      # STEP 4: Trivy Scan (✅ FIXED - no wget)
       - name: Trivy FS Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
-         scan-type: 'fs'
-         scan-ref: '.'
-         format: 'table'
-         output: 'trivy-report.txt'
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          output: 'trivy-report.txt'
 
-      # STEP 5: SonarCloud Scan (skip tests)
+      # STEP 5: SonarCloud Scan (✅ FIXED)
       - name: SonarCloud Scan
         working-directory: Multi-Tier-BankApp
         run: |
@@ -72,14 +75,14 @@ jobs:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # STEP 8: Generate Tag
+      # STEP 8: Generate Image Tag
       - name: Generate Tag
         id: tag
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           echo "tag=$SHORT_SHA" >> $GITHUB_OUTPUT
 
-      # STEP 9: Build & Push Image
+      # STEP 9: Build & Push Docker Image
       - name: Build & Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -98,18 +101,21 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
+      # STEP 1: Checkout Repo
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # STEP 2: Update Kubernetes YAML
       - name: Update Deployment YAML
         run: |
           IMAGE_LINE="image: ${{ env.IMAGE_NAME }}:.*"
           NEW_IMAGE="image: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image_tag }}"
           sed -i "s|$IMAGE_LINE|$NEW_IMAGE|" k8s/deployment.yaml
 
-      - name: Commit & Push
+      # STEP 3: Commit & Push
+      - name: Commit Changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
