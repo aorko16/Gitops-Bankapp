@@ -1,4 +1,4 @@
-name: CI/CD → Docker + GitOps + SonarCloud
+name: CI/CD → Docker + GitOps + SonarCloud-11
 
 on:
   push:
