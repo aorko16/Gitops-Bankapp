@@ -1,4 +1,4 @@
-name: CI/CD → Docker + GitOps + SonarCloud-11
+name: CI/CD → Docker + GitOps + SonarCloud-111
 
 on:
   push:
@@ -31,6 +31,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      # ────── Build + SonarCloud ──────
       - name: Build + SonarCloud Scan
         working-directory: Multi-Tier-BankApp
         env:
@@ -45,9 +46,9 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.branch.name=${GITHUB_REF_NAME} \
-            -DskipTests
+            -DskipTests=true                     # ← Required until tests are fixed
 
-      - name: Upload Surefire Test Reports
+      - name: Upload Test Reports (for debugging)
         if: always()
         uses: actions/upload-artifact@v4
         with:
