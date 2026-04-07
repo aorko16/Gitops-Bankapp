@@ -1,4 +1,4 @@
-name: CI/CD → Docker + GitOps + SonarCloud-111
+name: CI/CD → Docker + GitOps + SonarCloud
 
 on:
   push:
@@ -31,7 +31,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ────── Build + SonarCloud ──────
       - name: Build + SonarCloud Scan
         working-directory: Multi-Tier-BankApp
         env:
@@ -46,9 +45,9 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.branch.name=${GITHUB_REF_NAME} \
-            -DskipTests=true                     # ← Required until tests are fixed
+            -DskipTests=true
 
-      - name: Upload Test Reports (for debugging)
+      - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -69,6 +68,7 @@ jobs:
         with:
           name: trivy-fs-report
           path: trivy-report.txt
+          retention-days: 7
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
