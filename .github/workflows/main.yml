@@ -1,4 +1,5 @@
 name: CI/CD → Docker + GitOps + SonarCloud
+
 on:
   push:
     branches: [main]
@@ -13,9 +14,6 @@ env:
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/bankapp
 
 jobs:
-  # ─────────────────────────────
-  # JOB 1: Build + Scan + Docker Push
-  # ─────────────────────────────
   build-and-push:
     runs-on: ubuntu-latest
     outputs:
@@ -38,14 +36,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
-          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: aorko16
+          SONAR_PROJECT_KEY: Gitops-BankappProject
         run: |
-          mvn clean install sonar:sonar \
-            -Dsonar.organization=$SONAR_ORGANIZATION \
-            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+          mvn clean verify sonar:sonar \
+            -Dsonar.organization=aorko16 \
+            -Dsonar.projectKey=Gitops-BankappProject \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token=$SONAR_TOKEN
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.branch.name=${GITHUB_REF_NAME} \
+            -DskipTests=true
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-test-reports
+          path: Multi-Tier-BankApp/target/surefire-reports/
 
       - name: Trivy FS Scan
         uses: aquasecurity/trivy-action@master
@@ -60,7 +67,6 @@ jobs:
         with:
           name: trivy-fs-report
           path: trivy-report.txt
-          if-no-files-found: warn
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -86,9 +92,6 @@ jobs:
             ${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
             ${{ env.IMAGE_NAME }}:latest
 
-  # ─────────────────────────────
-  # JOB 2: GitOps Update
-  # ─────────────────────────────
   update-manifest:
     runs-on: ubuntu-latest
     needs: build-and-push
@@ -112,6 +115,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add k8s/deployment.yaml
+          
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
