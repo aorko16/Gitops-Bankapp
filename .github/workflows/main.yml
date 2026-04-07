@@ -33,9 +33,17 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build Project
+      - name: Build + SonarCloud Scan
         working-directory: Multi-Tier-BankApp
-        run: mvn clean install -DskipTests
+        run: |
+          mvn clean install sonar:sonar \
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Trivy FS Scan
         uses: aquasecurity/trivy-action@master
@@ -51,21 +59,6 @@ jobs:
           name: trivy-fs-report
           path: trivy-report.txt
           if-no-files-found: warn
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        with:
-          projectBaseDir: Multi-Tier-BankApp
-          args: >
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
-            -Dsonar.java.binaries=target/classes
-            -Dsonar.sources=src/main/java
-            -Dsonar.tests=src/test/java
-            -Dsonar.language=java
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
