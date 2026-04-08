@@ -159,7 +159,7 @@ spec:
     spec:
       containers:
       - name: bankapp
-        image: aorko16/bankapp:latest
+        image: aorko16/bankapp:0c3c834
 
         # Resource limits
         resources:
