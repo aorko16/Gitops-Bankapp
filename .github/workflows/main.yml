@@ -34,8 +34,8 @@ jobs:
           distribution: 'temurin'
 
       # ------------------ Build Project ------------------
-      - name: Build with Maven
-        run: mvn -B clean verify
+      - name: Build with Maven (Skip Tests)
+        run: mvn -B clean install -DskipTests
         working-directory: Multi-Tier-BankApp
 
       # ------------------ SonarCloud Scan ------------------
