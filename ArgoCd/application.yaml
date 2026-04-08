@@ -26,7 +26,7 @@ spec:
   source:
     repoURL: https://github.com/aorko16/Gitops-Bankapp.git
     targetRevision: main
-    path: k8s   # ⚠️ FIX THIS BASED ON YOUR REPO
+    path: K8s   # ⚠️ FIX THIS BASED ON YOUR REPO
   destination:
     server: https://kubernetes.default.svc
     namespace: bankapp-ns
