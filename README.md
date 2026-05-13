@@ -16,9 +16,44 @@ Monitoring:
 Prometheus → Metrics
 Grafana → Dashboards
 
+.
+├── terraform/
+│   ├── vpc/
+│   ├── eks/
+│   ├── iam/
+│   ├── alb/
+│   └── main.tf
+│
+├── k8s-manifests/
+│   ├── app/
+│   ├── ingress/
+│   └── namespace.yaml
+│
+├── helm-chart/
+│   └── my-app/
+│
+├── ci-cd/
+│   ├── jenkinsfile
+│   └── docker-build-push.sh
+│
+├── argocd/
+│   ├── application.yaml
+│   └── project.yaml
+│
+├── monitoring/
+│   ├── prometheus-values.yaml
+│   └── grafana-values.yaml
+│
+├── app/
+│   ├── src/
+│   ├── Dockerfile
+│   └── pom.xml / package.json
+│
+├── architecture.png
+└── README.md
 
 
-
+----------------------------------------------------------------------------------
 Final Answer
 Your GitHub Actions Pipeline
 
