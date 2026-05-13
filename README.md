@@ -1,3 +1,31 @@
+Best Beginner Production Architecture
+
+This is enough for a strong portfolio:
+
+Users
+  ↓
+AWS ALB Ingress
+  ↓
+EKS Cluster
+  ↓
+Application Pods
+
+Terraform
+  ↓
+Creates AWS Infra
+
+GitHub/Jenkins
+  ↓
+Build Docker Image
+
+ArgoCD
+  ↓
+Deploy to Kubernetes
+
+Prometheus + Grafana
+  ↓
+Monitoring
+
 Final Answer
 Your GitHub Actions Pipeline
 
